@@ -1,0 +1,201 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["clientExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://postgres:admin123@localhost:5432/api-0"
+}
+
+model Profile {
+  id  Int    @id @default(autoincrement())
+  bio String
+}
+
+model Customer {
+  id Int @id @default(autoincrement())
+  first_name String @db.VarChar(255)
+  middle_name String @db.VarChar(255)
+  last_name String @db.VarChar(255)
+  email_address String @db.VarChar(255)
+  created_at DateTime @db.Timestamp() @default(now())
+  password_history PasswordHistory[]
+  customer_login CustomerLogin[]
+  login_attempHistory LoginAttempHistory[]
+}
+
+model PasswordHistory {
+  id Int @id @default(autoincrement())
+  password_hash String @db.VarChar(255)
+  retired_at DateTime @db.Timestamp()
+  customer Customer? @relation(fields: [customer_id], references: [id])
+  customer_id Int?
+}
+
+model CustomerLogin {
+  id Int @id @default(autoincrement())
+  password_hash String @db.VarChar(255)
+  locked_out Boolean @db.Boolean
+  customer Customer? @relation(fields: [customer_id], references: [id])
+  customer_id Int?
+}
+
+model LoginAttempHistory {
+  id Int @id @default(autoincrement())
+  login_successful Boolean @db.Boolean
+  attempted_at DateTime @db.Timestamp()
+  customer Customer? @relation(fields: [customer_id], references: [id])
+  customer_id Int?
+}
+
+// Product model
+model Product {
+  id Int @id @default(autoincrement())
+  name String @db.VarChar(255)
+  sku String @db.VarChar(255)
+  description String @db.VarChar()
+  price Float @db.DoublePrecision
+  product_category ProductCategory? @relation(fields: [category_id], references: [id])
+  category_id Int?
+  product_vendor ProductVendor? @relation(fields: [product_vendor_id], references: [id])
+  product_vendor_id Int?
+  pricing_hostory PricingHistory[]
+  related_product RelatedProduct[]
+  order_item OrderItem[]
+  shopping_cart_hostory ShoppingCartHistory[]
+  shopping_card_item ShoppingCartItem[]
+
+  // product_id RelatedProduct[] @relation("ProductId")
+}
+
+model ProductCategory {
+  id Int @id @default(autoincrement())
+  name String @db.VarChar()
+  code Int
+  description String @db.VarChar()
+  parent_code Int
+  products Product[]
+}
+
+model PricingHistory {
+  id Int @id @default(autoincrement())
+  price Float @db.DoublePrecision
+  stated_at DateTime @db.Timestamp()
+  ended_at DateTime @db.Timestamp()
+  product Product? @relation(fields: [product_id], references: [id])
+  product_id Int?
+}
+
+model RelatedProduct {
+  id Int @id @default(autoincrement())
+  relevance_score Int
+  product Product? @relation(fields: [product_id], references: [id])
+  product_id Int?
+  // related_product Product? @relation(name: "RelatedProductId", fields: [related_product_id], references: [id])
+  // related_product_id Int?
+
+}
+
+model ProductVendor {
+  id Int @id @default(autoincrement())
+  company_code String @db.VarChar()
+  name String @db.VarChar()
+  description String @db.VarChar()
+  address_street_no String @db.VarChar()
+  address_street_alt String @db.VarChar()
+  address_city String @db.VarChar()
+  address_state String @db.VarChar()
+  address_postal_code String @db.VarChar()
+  address_country_code String @db.VarChar()
+  product Product[]
+}
+
+// Order Model
+model OrderStatusCode {
+  id Int @id @default(autoincrement())
+  status_code String @db.VarChar()
+  description String @db.VarChar()
+  order Order[]
+}
+
+model Order {
+  id Int @id @default(autoincrement())
+  customer_id Int 
+  order_status_code OrderStatusCode? @relation(fields: [status_code_id], references: [id])
+  status_code_id Int?
+  order_item OrderItem[]
+  shipment Shipment[]
+}
+
+model OrderItem {
+  id Int @id @default(autoincrement())
+  product Product? @relation(fields: [product_id], references: [id])
+  product_id Int?
+  quantity Int
+  price Int
+  order Order? @relation(fields: [order_id], references: [id])
+  order_id Int?
+  order_item_return OrderItemReturn[]
+  shipment_item ShipmentItem[]
+}
+
+model OrderItemReturn {
+  id Int @id @default(autoincrement())
+  return_id Int 
+  issued_by String @db.VarChar()
+  issue_at DateTime @db.Timestamp()
+  order OrderItem? @relation(fields: [order_item_id], references: [id])
+  order_item_id Int?
+}
+
+// Shopping Model
+model ShoppingCartItem {
+  id Int @id @default(autoincrement())
+  customer_id String @db.VarChar(255)
+  product Product? @relation(fields: [product_id], references: [id])
+  product_id Int
+  quantity Int
+  price Int
+}
+
+model ShoppingCartHistory {
+  id Int @id @default(autoincrement())
+  ocurred_at DateTime @db.Timestamp()
+  customer_id String @db.VarChar(255)
+  product Product? @relation(fields: [product_id], references: [id])
+  product_id Int
+  shopping_cart_history_action ShoppingCartHistoryAction? @relation(fields: [action_id], references: [id])
+  action_id Int?
+}
+
+model ShoppingCartHistoryAction {
+  id Int @id @default(autoincrement())
+  action_constant String @db.VarChar(255)
+  description String @db.VarChar(255)
+  shopping_history ShoppingCartHistory[]
+}
+
+// Shipping Model
+model Shipment {
+  id Int @id @default(autoincrement())
+  to_address String @db.VarChar()
+  from_address String @db.VarChar()
+  tracking_no String @db.VarChar()
+  sent_at DateTime @db.Timestamp()
+  order Order? @relation(fields: [order_id], references: [id])
+  order_id Int?
+  shipment_item ShipmentItem[]
+}
+
+model ShipmentItem {
+  shipment Shipment? @relation(fields: [shipmnent_id], references: [id])
+  shipmnent_id Int
+  orderItem OrderItem @relation(fields: [order_item_id], references: [id])
+  order_item_id Int
+
+  @@id([shipmnent_id, order_item_id])
+}
